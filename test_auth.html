@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventIQ - Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .login-form {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .user-info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .test-credentials {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ffeaa7;
+        }
+        .test-credentials h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .test-credentials p {
+            margin: 5px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EventIQ Authentication Test</h1>
+        
+        <div class="test-credentials">
+            <h3>Test Credentials</h3>
+            <p><strong>Admin:</strong> admin@eventiq.com / password</p>
+            <p><strong>User:</strong> user@example.com / password</p>
+        </div>
+
+        <div class="login-form">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            
+            <div id="message"></div>
+            <div id="userInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const messageDiv = document.getElementById('message');
+            const userInfoDiv = document.getElementById('userInfo');
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.innerHTML = '<div class="message success">Login successful!</div>';
+                    userInfoDiv.innerHTML = `
+                        <div class="user-info">
+                            <h3>User Information</h3>
+                            <p><strong>ID:</strong> ${data.user.id}</p>
+                            <p><strong>Email:</strong> ${data.user.email}</p>
+                            <p><strong>Name:</strong> ${data.user.full_name}</p>
+                            <p><strong>Role:</strong> ${data.user.role}</p>
+                            <p><strong>Active:</strong> ${data.user.is_active ? 'Yes' : 'No'}</p>
+                            <p><strong>Verified:</strong> ${data.user.is_verified ? 'Yes' : 'No'}</p>
+                            <p><strong>Token Type:</strong> ${data.token_type}</p>
+                            <p><strong>Access Token:</strong> <code style="word-break: break-all;">${data.access_token}</code></p>
+                        </div>
+                    `;
+                } else {
+                    messageDiv.innerHTML = `<div class="message error">Login failed: ${data.detail}</div>`;
+                    userInfoDiv.innerHTML = '';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = `<div class="message error">Connection error: ${error.message}</div>`;
+                userInfoDiv.innerHTML = '';
+            }
+        });
+
+        // Pre-fill admin credentials for easy testing
+        document.getElementById('email').value = 'admin@eventiq.com';
+        document.getElementById('password').value = 'password';
+    </script>
+</body>
+</html>
