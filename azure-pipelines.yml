@@ -1,50 +1,41 @@
 trigger:
-  - main
+- main
  
 pool:
   vmImage: 'ubuntu-latest'
  
-variables:
-  pythonVersion: '3.10'
-appFile: 'app.py'           # change if different
-  artifactName: 'streamlit-drop'
-zipName: 'app.zip'
- 
 steps:
+# 1. Install Python
 - task: UsePythonVersion@0
   inputs:
-    versionSpec: '$(pythonVersion)'
+    versionSpec: '3.9'
+    addToPath: true
  
+# 2. Install dependencies
 - script: |
     python -m pip install --upgrade pip
     pip install -r requirements.txt
-  displayName: 'Install dependencies'
+  displayName: 'Install Python dependencies'
  
-# copy repo files to staging (exclude venv and .git)
-- task: CopyFiles@2
-  inputs:
-    SourceFolder: '$(System.DefaultWorkingDirectory)'
-    Contents: |
-      **/*
-      !venv/**
-      !.venv/**
-      !**/.git/**
-      !**/__pycache__/**
-      !**/*.pyc
-    TargetFolder: '$(Build.ArtifactStagingDirectory)/app'
- 
-# create a zip of staged folder
+# 3. Archive the app for deployment
 - task: ArchiveFiles@2
   inputs:
-    rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/app'
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
     includeRootFolder: false
     archiveType: 'zip'
-    archiveFile: '$(Build.ArtifactStagingDirectory)/$(zipName)'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
     replaceExistingArchive: true
  
-# publish zip as pipeline artifact
+# 4. Publish as pipeline artifact
 - task: PublishBuildArtifacts@1
   inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)/$(zipName)'
-    ArtifactName: '$(artifactName)'
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
+    ArtifactName: 'drop'
     publishLocation: 'Container'
+ 
+# 5. Deploy to Azure App Service
+- task: AzureWebApp@1
+  inputs:
+    azureSubscription: cb6255866a-vibecode06-az
+    appName: CTS-VibeAppUK6103-5
+    package: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
