@@ -1,41 +1,81 @@
 trigger:
+
 - main
- 
+
+
+
 pool:
-  vmImage: 'ubuntu-latest'
- 
+
+  vmImage: 'ubuntu-latest'
+
+
+
 steps:
-# 1. Install Python
+
+# Step 1: Use Python 3.9
+
 - task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.9'
-    addToPath: true
- 
-# 2. Install dependencies
+
+  inputs:
+
+    versionSpec: '3.9'
+
+    addToPath: true
+
+
+
+# Step 2: Install dependencies
+
 - script: |
-    python -m pip install --upgrade pip
-    pip install -r requirements.txt
-  displayName: 'Install Python dependencies'
- 
-# 3. Archive the app for deployment
+
+    python -m pip install --upgrade pip
+
+    pip install -r requirements.txt
+
+  displayName: 'Install Python dependencies'
+
+
+
+# Step 3: Archive app files
+
 - task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
-    includeRootFolder: false
-    archiveType: 'zip'
-    archiveFile: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
-    replaceExistingArchive: true
- 
-# 4. Publish as pipeline artifact
+
+  inputs:
+
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+
+    includeRootFolder: false
+
+    archiveType: 'zip'
+
+archiveFile: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
+
+    replaceExistingArchive: true
+
+
+
+# Step 4: Publish artifact for deployment
+
 - task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
- 
-# 5. Deploy to Azure App Service
+
+  inputs:
+
+PathtoPublish: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
+
+    ArtifactName: 'drop'
+
+    publishLocation: 'Container'
+
+
+
+# Step 5: Deploy to Azure Web App
+
 - task: AzureWebApp@1
-  inputs:
-    azureSubscription: cb6255866a-vibecode06-az
-    appName: CTS-VibeAppUK6103-5
-    package: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
+
+  inputs:
+
+    azureSubscription: 'cb6255866a-vibecode06-az'
+
+    appName: 'CTS-VibeAppUK6103-5'
+
+package: '$(Build.ArtifactStagingDirectory)/streamlit_app.zip'
