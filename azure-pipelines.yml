@@ -4,41 +4,47 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
  
+variables:
+  pythonVersion: '3.10'
+appFile: 'app.py'           # change if different
+  artifactName: 'streamlit-drop'
+zipName: 'app.zip'
+ 
 steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.10'
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(pythonVersion)'
  
-  - script: |
-      python -m pip install --upgrade pip
-      pip install -r requirements.txt
-    displayName: 'Install dependencies'
+- script: |
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install dependencies'
  
-  # copy files to artifact staging folder (exclude venv, .git)
-  - task: CopyFiles@2
-    inputs:
-      SourceFolder: '$(System.DefaultWorkingDirectory)'
-      Contents: |
-        **/*
-        !venv/**
-        !.venv/**
-        !**/.git/**
-        !**/*.pyc
-        !__pycache__/**
-      TargetFolder: '$(Build.ArtifactStagingDirectory)/app'
+# copy repo files to staging (exclude venv and .git)
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: |
+      **/*
+      !venv/**
+      !.venv/**
+      !**/.git/**
+      !**/__pycache__/**
+      !**/*.pyc
+    TargetFolder: '$(Build.ArtifactStagingDirectory)/app'
  
-  # create a zip from staged folder
-  - task: ArchiveFiles@2
-    inputs:
-      rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/app'
-      includeRootFolder: false
-      archiveType: 'zip'
-archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
-      replaceExistingArchive: true
+# create a zip of staged folder
+- task: ArchiveFiles@2
+  inputs:
+    rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/app'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/$(zipName)'
+    replaceExistingArchive: true
  
-  # publish the zip as a pipeline artifact
-  - task: PublishBuildArtifacts@1
-    inputs:
-PathtoPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
-      ArtifactName: 'streamlit-drop'
-      publishLocation: 'Container'
+# publish zip as pipeline artifact
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/$(zipName)'
+    ArtifactName: '$(artifactName)'
+    publishLocation: 'Container'
