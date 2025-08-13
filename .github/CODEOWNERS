@@ -1,0 +1,25 @@
+# EventIQ Module Ownership
+# Each module can only be modified by its assigned team member
+
+# Core files - require admin approval
+/modules/config.py                @YOUR_GITHUB_USERNAME
+/modules/constants.py             @YOUR_GITHUB_USERNAME
+/modules/utils.py                 @YOUR_GITHUB_USERNAME
+/enhanced_frontend.py             @YOUR_GITHUB_USERNAME
+
+# Module assignments (replace with actual GitHub usernames)
+/modules/certificates.py          @member1_github
+/modules/event_setup.py           @member2_github  
+/modules/settings.py              @member3_github
+/modules/feedback.py              @member4_github
+/modules/analytics.py             @member4_github
+/modules/media_gallery.py         @member5_github
+/modules/vendors.py               @member6_github
+/modules/participants.py          @member7_github
+/modules/booths.py                @member8_github
+/modules/workflows.py             @member9_github
+/modules/budget.py                @member10_github
+
+# Documentation - team lead only
+/README.md                        @YOUR_GITHUB_USERNAME
+/TEAM_COLLABORATION_GUIDE.md      @YOUR_GITHUB_USERNAME

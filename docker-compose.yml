@@ -1,0 +1,135 @@
+# EventIQ Docker Compose Configuration
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: eventiq
+      POSTGRES_USER: eventiq_user
+      POSTGRES_PASSWORD: eventiq_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventiq_user -d eventiq"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching and background tasks
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # EventIQ FastAPI Backend
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://eventiq_user:eventiq_password@db:5432/eventiq
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=True
+      - ENVIRONMENT=development
+    volumes:
+      - ./uploads:/app/uploads
+      - ./certificates:/app/certificates
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Streamlit Frontend
+  frontend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://api:8000/api/v1
+    command: ["streamlit", "run", "app/frontend/main.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+
+  # Background Task Worker (Celery)
+  worker:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://eventiq_user:eventiq_password@db:5432/eventiq
+      - REDIS_URL=redis://redis:6379/0
+    command: ["celery", "-A", "app.core.celery", "worker", "--loglevel=info"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./certificates:/app/certificates
+      - ./logs:/app/logs
+
+  # Celery Beat Scheduler
+  scheduler:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://eventiq_user:eventiq_password@db:5432/eventiq
+      - REDIS_URL=redis://redis:6379/0
+    command: ["celery", "-A", "app.core.celery", "beat", "--loglevel=info"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - frontend
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    name: eventiq_network
